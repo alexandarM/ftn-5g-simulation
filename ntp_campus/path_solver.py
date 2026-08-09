@@ -27,7 +27,7 @@ def render_scene(scene, camera, resolution=(1024, 1024), num_samples=1024, paths
                   max_paths=8000, path_subsample_seed=41):
     """
     Renders a 3D view of the scene, optionally with `paths` overlaid.
-    Corresponds to cells 66 and 70.
+    
 
     WHY `max_paths` EXISTS ()
     -----------------------------------------------------

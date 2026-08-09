@@ -136,7 +136,7 @@ def deploy_random_users(scene, groups, num_receivers=100, ply_folder=config.PLY_
     """
     High‑level wrapper: computes building bounding boxes, generates random
     positions outside them, and adds them to the scene as receivers.
-    Corresponds to cell 63 in the original notebook.
+    .
 
     Returns
     -------

@@ -403,7 +403,7 @@ def ensure_diffusion_ready(scene):
 def verify_material_assignment(scene):
     """
     Counts how many objects received which material (and whether any object
-    is left without a material). Matches the cell 58 check.
+    is left without a material). 
     """
     print("Materials in scene:")
     for name, obj in scene.objects.items():

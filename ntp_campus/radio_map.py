@@ -161,7 +161,7 @@ def plot_site_layout(sector_positions, arrow_len=30.0,
                       save_path="figures/site_layout_check_v2.png"):
     """
     Draws a 2D top‑down view of sector positions with arrows indicating
-    boresight direction for each antenna. Corresponds to cell 31.
+    boresight direction for each antenna.
 
     Parameters
     ----------
@@ -214,7 +214,7 @@ def plot_random_user_sampling(radio_map):
     """
     Demonstrates `radio_map.sample_positions` with two different criteria
     (SINR and path_gain), and plots sampled positions over the coverage map.
-    Corresponds to cell 37.
+    
     """
     # --- 1. Sampling/visualisation based on SINR metric ---
     pos, cell_ids = radio_map.sample_positions(
@@ -247,7 +247,7 @@ def plot_sector_association(scene, radio_map, num_pos=4, min_val_db=3,
     """
     Renders the SINR map from a bird's‑eye view, displays sector association
     (`radio_map.show_association`) and plots a small number of sampled users
-    per sector (coloured by sector). Corresponds to cell 39.
+    per sector (coloured by sector).
     """
     print("Rendering bird's‑eye view with SINR map...")
     cam = Camera(
@@ -282,7 +282,7 @@ def show_all_radio_map_metrics(radio_map, num_tx=3):
     """
     Displays `path_gain`, `rss`, and `sinr` maps (per transmitter) and their
     cumulative distribution functions (CDFs), both combined and per transmitter.
-    Corresponds to cells 41‑46.
+    
     """
     for metric in ("path_gain", "rss"):
         for tx in range(num_tx):
