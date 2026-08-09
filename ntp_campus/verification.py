@@ -6,11 +6,9 @@ Orchestrates verification of the "air3278_broadcast" antenna pattern on an empty
 (no buildings) scene. This way the measured values (V‑BW, H‑BW, F/B, SLL) can
 be compared directly against datasheet targets, without occlusion or reflections
 from campus geometry.
-
-This corresponds to cells 15, 20‑24 from the original notebook, which were
-scripted at global scope; here they're wrapped into functions that return
-results and optionally plot figures.
 """
+
+import os
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -74,8 +72,6 @@ def build_test_transmitter(clean_scene, tx_name="TX_CLEAN_TEST",
 
 def run_vbw_hbw_verification(clean_scene, tx_name="TX_CLEAN_TEST", plot=True):
     """
-    Runs V‑BW and H‑BW measurements on the empty scene and optionally plots
-    diagrams with the ‑3 dB threshold. Corresponds to cell 15.
 
     Returns
     -------
@@ -147,6 +143,9 @@ def run_fbr_verification(clean_scene, tx_name="FBR_TEST_TX", radius=100.0,
         plt.grid(alpha=0.3)
         plt.tight_layout()
         if save_fig_path:
+            save_dir = os.path.dirname(save_fig_path)
+            if save_dir:
+                os.makedirs(save_dir, exist_ok=True)
             plt.savefig(save_fig_path, dpi=150, bbox_inches="tight", facecolor="white")
         plt.show()
 
@@ -157,7 +156,7 @@ def run_sll_verification(clean_scene, tx_name="FBR_TEST_TX", radius=100.0,
                           span_deg=60.0, n_points=400):
     """
     Runs the vertical SLL measurement on the empty scene (reusing the same
-    test transmitter as the F/B test). Corresponds to cells 22‑24.
+    test transmitter as the F/B test). 
 
     Returns the result of `measure_side_lobe_level_vertical`.
     """
@@ -183,14 +182,6 @@ def run_full_antenna_verification(tx_yaw_deg=20.0, tx_tilt_deg=4.0, tx_power_dbm
                             tx_power_dbm=tx_power_dbm)
     vbw_hbw = run_vbw_hbw_verification(clean_scene, tx_name="TX_CLEAN_TEST")
 
-    # Important: F/B and SLL tests must run on a FRESH empty scene with only
-    # one transmitter ("FBR_TEST_TX"), not on `clean_scene` above (which still
-    # contains "TX_CLEAN_TEST"). Functions like `measure_vbw_simple` and
-    # `measure_side_lobe_level_vertical` do not explicitly select a transmitter
-    # index (unlike the F/B functions that use `measure_eirp_at_direction`).
-    # They sum power across ALL transmitters in the scene. If two transmitters
-    # remained, the pattern would be smeared and SLL detection would miss the
-    # side lobe (or F/B measurements would be wrong).
     fbr_scene = load_empty_scene()
     build_test_transmitter(fbr_scene, tx_name="FBR_TEST_TX",
                             tx_yaw_deg=tx_yaw_deg, tx_tilt_deg=tx_tilt_deg,

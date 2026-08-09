@@ -112,6 +112,24 @@ class PathSolverConfig:
     """
     Parameters for the PathSolver call. As with RadioMapSolverConfig,
     `diffuse_reflection` is derived from `DiffusionConfig.enabled`.
+
+    NOTE ON `samples_per_src` / `max_num_paths_per_src`
+    -----------------------------------------------------
+    These control the number of candidate rays traced per transmitter
+    (and the candidate-path buffer size) during PathSolver's candidate
+    generation. Sionna RT defaults both to 1_000_000. Its internal
+    candidate-path buffer uses a 32-bit index, so enabling
+    `diffuse_reflection` on large, highly-visible surfaces (most notably
+    the ground "plane" of a campus/street scene) can push the number of
+    candidate diffuse interactions per source past the 2^32 limit,
+    raising an overflow error. If you hit that, lower THESE two values
+    (not `max_depth` or `RadioMapSolverConfig.samples_per_tx`, which are
+    unrelated) — this reduces candidate-ray density without reducing how
+    many bounces a found path can have, so you can keep a higher
+    `max_depth` for closer-to-1:1 digital-twin fidelity. Start around
+    1e5-5e5 when diffuse reflection is enabled on large surfaces, and
+    tune upward from there until you hit the limit again or compute time
+    becomes prohibitive.
     """
     max_depth: int = 3            # 3 = without diffusion; 5 = typical with diffusion
     los: bool = True
@@ -119,6 +137,8 @@ class PathSolverConfig:
     refraction: bool = True
     synthetic_array: bool = False
     seed: int = 41                # Random seed for reproducibility (e.g., diffuse scattering)
+    samples_per_src: int = int(1e6)        # candidate rays per TX (lower if diffuse + large surfaces -> 2^32 overflow)
+    max_num_paths_per_src: int = int(1e6)  # candidate-path buffer size per TX (lower alongside samples_per_src)
 
 
 # =========================================================================
@@ -174,6 +194,8 @@ class SimulationConfig:
             refraction=self.path_solver.refraction,
             synthetic_array=self.path_solver.synthetic_array,
             seed=self.path_solver.seed,
+            samples_per_src=self.path_solver.samples_per_src,
+            max_num_paths_per_src=self.path_solver.max_num_paths_per_src,
         )
 
     def describe(self) -> str:
@@ -193,6 +215,8 @@ class SimulationConfig:
             f"diffuse_reflection={d.enabled}",
             f"  PathSolver: max_depth={self.path_solver.max_depth}, "
             f"seed={self.path_solver.seed}, diffuse_reflection={d.enabled}, "
-            f"synthetic_array={self.path_solver.synthetic_array}",
+            f"synthetic_array={self.path_solver.synthetic_array}, "
+            f"samples_per_src={self.path_solver.samples_per_src:.0e}, "
+            f"max_num_paths_per_src={self.path_solver.max_num_paths_per_src:.0e}",
         ]
         return "\n".join(lines)

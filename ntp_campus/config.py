@@ -82,3 +82,11 @@ CAMPUS_MESHES_GDRIVE_ID = "16oJFwMXwbNxxNwj7y_gZZVvNncxA6Yvy"
 RX_AREA_X_MIN, RX_AREA_X_MAX = -330, 260
 RX_AREA_Y_MIN, RX_AREA_Y_MAX = -330, 260
 RX_HEIGHT_M = 1.5  # Typical mobile device height above ground
+
+# -----------------------------------------------------------------------
+# 8. GEOREFERENCING (used by geo_utils.py to overlay coverage on a real
+#    satellite/OSM background)
+# -----------------------------------------------------------------------
+CAMPUS_REF_LAT = 45.2461012
+CAMPUS_REF_LON = 19.8516968
+CAMPUS_REF_ROTATION_DEG = 0.0  # set > 0 (clockwise) if the BLOSM import was rotated relative to true north

@@ -74,7 +74,7 @@ def measure_vbw_simple(sc, tx_name, radius=100.0, tx_power_dbm=53.0,
 
     n = len(positions)
     rx_axis = next((i for i, s in enumerate(a_np.shape) if s == n), 0)
-    lambda_m = config.SPEED_OF_LIGHT_M_S / sc.frequency
+    lambda_m = config.SPEED_OF_LIGHT_M_S / to_scalar(sc.frequency)
 
     # Original shape: (num_rx, num_rx_ant, num_tx, num_tx_ant, num_paths, ...)
     tx_ant_axis_original = 4
@@ -179,7 +179,7 @@ def scan_local_angles_and_eirp(sc, tx_name, world_el_offsets, world_az_offsets,
     rx_axis_t = next((i for i, s in enumerate(theta_t_np.shape) if s == n), 0)
 
     tx_ant_axis_original = 4
-    lambda_m = config.SPEED_OF_LIGHT_M_S / sc.frequency
+    lambda_m = config.SPEED_OF_LIGHT_M_S / to_scalar(sc.frequency)
     num_tx_ant = a_np.shape[tx_ant_axis_original]
 
     theta_list, phi_list, eirp_list = [], [], []
@@ -318,7 +318,7 @@ def measure_eirp_at_direction(sc, tx_name, az_offset_deg, el_deg=None, radius=10
     a_slice = a_complex[0, :, tx_idx, :, :]  # (rx_ant, tx_ant, paths) – single RX
 
     dist = np.linalg.norm(np.array(rx_pos) - tx_pos)
-    lambda_m = config.SPEED_OF_LIGHT_M_S / sc.frequency
+    lambda_m = config.SPEED_OF_LIGHT_M_S / to_scalar(sc.frequency)
     fspl_db = 20.0 * np.log10(4 * np.pi * dist / lambda_m)
 
     # Same formula: coherent across TX, incoherent across RX and paths
@@ -442,7 +442,7 @@ def measure_front_to_back_ratio_batch(sc, tx_name, radius=100.0,
 
     tx_idx = list(sc.transmitters.keys()).index(tx_name)
     eirp_back_grid = np.full((len(el_sweep), len(back_offsets)), np.nan)
-    lambda_m = config.SPEED_OF_LIGHT_M_S / sc.frequency
+    lambda_m = config.SPEED_OF_LIGHT_M_S / to_scalar(sc.frequency)
     fspl_db = 20.0 * np.log10(4 * np.pi * radius / lambda_m)  # same distance for all
 
     for k, rx_name in enumerate(rx_names):

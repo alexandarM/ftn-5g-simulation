@@ -19,9 +19,9 @@ from .antenna_pattern import AIR3278_SPECS, compass_azimuth_to_yaw
 
 # Actual (x, y) coordinates of each sector on site [m].
 SECTOR_POSITIONS_XY = {
-    1: (-270.63, -152.00),
-    2: (-269.70, -150.75),
-    3: (-264.06, -164.85),
+    1: (-270.63, -152.00),  # 1: (-270.63, -152.00),
+    2: (-270.05, -152.00),  # 2: (-269.70, -150.75),
+    3: (-266.56, -159.97),  # 3: (-264.06, -164.85),
 }
 
 

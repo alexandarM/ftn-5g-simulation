@@ -7,6 +7,8 @@ and per‑sector coverage views, visualisation of antenna site layout, and
 sampling/display of user‑to‑sector association based on SINR/path_gain metrics.
 """
 
+import os
+
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -196,8 +198,13 @@ def plot_site_layout(sector_positions, arrow_len=30.0,
     ax.grid(alpha=0.3)
     plt.tight_layout()
     if save_path:
+        save_dir = os.path.dirname(save_path)
+        if save_dir:
+            os.makedirs(save_dir, exist_ok=True)
         plt.savefig(save_path, dpi=150)
     plt.show()
+
+    return fig
 
 
 # =========================================================================
@@ -231,8 +238,8 @@ def plot_random_user_sampling(radio_map):
         fig2.axes[0].plot(ids[:, 1], ids[:, 0], marker="x", linestyle="",
                            color=mpl.colormaps["tab10"].colors[tx])
 
-    return {"sinr_positions": pos, "sinr_cell_ids": cell_ids,
-            "path_gain_positions": pos2, "path_gain_cell_ids": cell_ids2}
+    return {"sinr_positions": pos, "sinr_cell_ids": cell_ids, "sinr_fig": fig,
+            "path_gain_positions": pos2, "path_gain_cell_ids": cell_ids2, "path_gain_fig": fig2}
 
 
 def plot_sector_association(scene, radio_map, num_pos=4, min_val_db=3,
@@ -268,7 +275,7 @@ def plot_sector_association(scene, radio_map, num_pos=4, min_val_db=3,
                               markersize=10, markeredgewidth=2, label=f"Sector {tx + 1}")
     plt.show()
 
-    return pos, cell_ids
+    return fig, pos, cell_ids
 
 
 def show_all_radio_map_metrics(radio_map, num_tx=3):

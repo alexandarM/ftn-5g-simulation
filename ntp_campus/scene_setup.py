@@ -13,7 +13,15 @@ local paths when running outside Colab.
 import os
 import zipfile
 
+import numpy as np
+
 from . import config
+
+
+def _to_scalar(x):
+    """Safely converts a Python/numpy/drjit scalar (e.g. `scene.frequency`,
+    which Sionna RT returns as a drjit Float) into a plain Python float."""
+    return float(np.asarray(x).reshape(-1)[0])
 
 
 def ensure_sionna_installed():
@@ -34,7 +42,15 @@ def ensure_sionna_installed():
 def enable_colab_widgets():
     """
     Enables interactive ipywidgets in Google Colab (needed for 3D scene/path
-    previews within the notebook). Safely skipped if not running in Colab.
+    previews within the notebook). Safely skipped if not running in Colab,
+    AND safely skipped if running in Colab but without a live IPython/Jupyter
+    kernel context (e.g. when the script is launched as a subprocess via
+    `!python main.py` rather than executed inside a notebook cell — in that
+    case `google.colab.output` imports fine, but `enable_custom_widget_manager()`
+    internally calls `IPython.get_ipython()`, which returns `None` and raises
+    `AttributeError` instead of `ImportError`). Either way this is a
+    non-essential nicety (only affects interactive 3D previews), so any
+    failure here should never abort the rest of the pipeline.
     """
     try:
         from google.colab import output
@@ -42,6 +58,9 @@ def enable_colab_widgets():
         print("[OK] Google Colab custom widget manager enabled.")
     except ImportError:
         print("[INFO] Not running in Google Colab — skipping enable_custom_widget_manager().")
+    except Exception as e:
+        print(f"[INFO] Could not enable Colab custom widget manager ({e!r}) — "
+              "skipping (this only affects interactive 3D previews, not the simulation itself).")
 
 
 def download_campus_meshes(gdrive_id=config.CAMPUS_MESHES_GDRIVE_ID,
@@ -97,7 +116,7 @@ def load_campus_scene(scene_path=config.SCENE_XML_PATH,
     print(f"Loading campus scene from '{scene_path}'...")
     scene = load_scene(scene_path, merge_shapes=merge_shapes)
     scene.frequency = frequency_hz
-    print(f"[OK] Scene loaded. Frequency set to {scene.frequency / 1e9:.2f} GHz")
+    print(f"[OK] Scene loaded. Frequency set to {_to_scalar(scene.frequency) / 1e9:.2f} GHz")
     return scene
 
 
@@ -123,6 +142,6 @@ def load_empty_scene(frequency_hz=config.SCENE_FREQUENCY_HZ):
         scene = load_scene()
 
     scene.frequency = frequency_hz
-    print(f"Frequency: {scene.frequency / 1e9:.2f} GHz")
+    print(f"Frequency: {_to_scalar(scene.frequency) / 1e9:.2f} GHz")
     print(f"Objects in scene: {len(scene.objects)} (should be 0 or close to 0)")
     return scene

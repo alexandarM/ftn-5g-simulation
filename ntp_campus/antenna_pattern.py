@@ -62,8 +62,8 @@ AIR3278_SPECS = [
 # site layout drawing and per-sector coverage rendering.
 AIR3278_SECTOR_POSITIONS = [
     {"name": "NTP_S1_NR3500", "az": 0.0,   "tilt": 4.0, "h": 31.8, "pos": [-270.63, -152.00]},
-    {"name": "NTP_S2_NR3500", "az": 70.0,  "tilt": 4.0, "h": 31.8, "pos": [-269.70, -150.75]},
-    {"name": "NTP_S3_NR3500", "az": 140.0, "tilt": 4.0, "h": 31.8, "pos": [-264.06, -164.85]},
+    {"name": "NTP_S2_NR3500", "az": 70.0,  "tilt": 4.0, "h": 31.8, "pos": [-270.05, -152.00]},
+    {"name": "NTP_S3_NR3500", "az": 140.0, "tilt": 4.0, "h": 31.8, "pos": [-266.56, -159.97]},
 ]
 
 

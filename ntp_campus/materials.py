@@ -311,12 +311,21 @@ def assign_materials_to_scene(scene, groups, materials):
 
 def fix_remaining_itu_concrete(scene, concrete_material):
     """
-    Patch for objects that still have the default built-in `itu_concrete`
-    material (from the XML scene) – reassigns them to our custom
+    Patch for objects that still have the default built-in ITU "concrete"
+    material (from the XML scene, named "itu_concrete" or just "concrete"
+    depending on the Sionna RT version) – reassigns them to our custom
     `concrete_material` so they also get a scattering coefficient.
+
+    Note: `obj.radio_material` is a `RadioMaterial` object, not a string,
+    so it must be compared via its `.name` attribute rather than directly
+    against a string (a direct `==` comparison against a string is always
+    False and would silently skip every object).
     """
+    default_concrete_names = {"itu_concrete", "concrete"}
     for obj_name, obj in scene.objects.items():
-        if obj.radio_material == "itu_concrete":
+        mat = obj.radio_material
+        mat_name = mat.name if mat is not None else None
+        if mat_name in default_concrete_names:
             obj.radio_material = concrete_material
             print(f"[OK] {obj_name} -> concrete_scattering")
 
