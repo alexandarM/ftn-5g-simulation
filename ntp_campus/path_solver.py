@@ -10,6 +10,7 @@ verify that the computation makes sense before moving on to channel analysis
 """
 
 import numpy as np
+import mitsuba as mi
 from sionna.rt import PathSolver, Camera
 from sionna.rt.constants import InteractionType
 
@@ -22,20 +23,86 @@ def make_bird_eye_camera(position=(200.0, -155.0, 800.0), look_at=(0.0, 0.0, 0.0
     )
 
 
-def render_scene(scene, camera, resolution=(1024, 1024), num_samples=1024, paths=None):
+def render_scene(scene, camera, resolution=(1024, 1024), num_samples=1024, paths=None,
+                  max_paths=8000, path_subsample_seed=41):
     """
     Renders a 3D view of the scene, optionally with `paths` overlaid.
     Corresponds to cells 66 and 70.
+
+    WHY `max_paths` EXISTS ()
+    -----------------------------------------------------
+    Sionna RT's renderer does NOT draw all overlaid paths as one cheap
+    geometry. Internally (`sionna.rt.renderer.get_overlay_scene` ->
+    `paths_to_segments`), it turns EVERY valid (rx, tx, path) triple into
+    its own sequence of individual Mitsuba `cylinder` shapes (one per
+    bounce), each with its own `area`-light emitter, and compiles ALL of
+    them into a brand-new Mitsuba scene via `mi.load_dict(...)` on every
+    single render call. There is no built-in limit or subsampling.
+
+    If the number of valid paths exceeds `max_paths`, this function
+    temporarily thins `paths`' internal validity mask down to a random
+    subset of `max_paths` entries (spread across all rx/tx pairs, not just
+    the first N so the overlay still looks representative), renders with
+    that thinned mask, and then ALWAYS restores the original mask before
+    returning (even on error) - so `paths` is left completely unmodified
+    for anything called afterwards (e.g. `diagnose_paths`,
+    `plot_channel_metrics`, which need the full path set).
+
+    Parameters
+    ----------
+    max_paths : int
+        Maximum number of (rx, tx, path) triples to keep for the overlay
+        render when `paths` is given. 5000-10000 is normally enough to see
+        the ray pattern without exhausting memory; lower it further (e.g.
+        1000-2000) if you still see high RAM after this. Ignored if
+        `paths` is None or the number of valid paths is already
+        <= max_paths.
+    path_subsample_seed : int
+        Seed for the random subsample, for reproducible figures.
     """
     kwargs = dict(camera=camera, resolution=list(resolution), num_samples=num_samples)
-    if paths is not None:
+
+    if paths is None:
+        return scene.render(**kwargs)
+
+    valid_np = np.array(paths.valid).astype(bool)
+    n_valid = int(valid_np.sum())
+
+    if n_valid <= max_paths:
         kwargs["paths"] = paths
-    scene.render(**kwargs)
+        return scene.render(**kwargs)
+
+    flat = valid_np.reshape(-1)
+    true_idx = np.flatnonzero(flat)
+    rng = np.random.default_rng(path_subsample_seed)
+    keep_idx = rng.choice(true_idx, size=max_paths, replace=False)
+    thinned_flat = np.zeros_like(flat)
+    thinned_flat[keep_idx] = True
+    thinned = thinned_flat.reshape(valid_np.shape)
+
+    # `Paths.valid` has no public setter, so we swap the private backing
+    # field directly -- restored in `finally` no matter what happens.
+    original_valid = paths._valid
+    try:
+        paths._valid = mi.TensorXb(thinned)
+        print(f"[render_scene] {n_valid} valid paths exceed max_paths={max_paths} "
+              f"-- overlaying a random subset of {max_paths} for THIS RENDER ONLY. "
+              f"(Rendering all {n_valid} would compile {n_valid}+ individual Mitsuba "
+              f"shapes into the overlay scene -- that compilation, not PathSolver, "
+              f"is what causes the OOM crash. `paths` is restored to its full set "
+              f"immediately after this render.)")
+        kwargs["paths"] = paths
+        fig = scene.render(**kwargs)
+    finally:
+        paths._valid = original_valid
+
+    return fig
 
 
 def run_path_solver(scene, max_depth=3, los=True, specular_reflection=True,
                      diffuse_reflection=False, refraction=True,
-                     synthetic_array=False, seed=41, check_diffusion_materials=True):
+                     synthetic_array=False, seed=41, check_diffusion_materials=True,
+                     samples_per_src=1_000_000, max_num_paths_per_src=1_000_000):
     """
     Runs PathSolver on the scene and returns the `paths` object containing
     full channel information (complex gains, delays, angles, interaction types)
@@ -54,6 +121,27 @@ def run_path_solver(scene, max_depth=3, los=True, specular_reflection=True,
     synthetic_array : bool
         If True, uses the faster analytical array model instead of explicit
         per‑element ray‑tracing.
+    samples_per_src : int
+        Number of candidate rays traced PER TRANSMITTER during candidate
+        generation (Sionna RT default: 1 000 000). This is the main memory/
+        compute lever for diffuse scattering: enabling `diffuse_reflection`
+        on large, highly‑visible surfaces (e.g. the ground "plane" of a
+        campus/street scene) causes a combinatorial explosion in the number
+        of diffuse candidate interactions per source. Sionna's internal
+        candidate‑path buffer is indexed with a 32‑bit type, so at the
+        default 1e6 this can overflow ("... exceeds max value of 2^32 ...")
+        as soon as diffuse reflection is enabled on a large-area object.
+        Lowering THIS parameter (not `max_depth`) is the correct way to fix
+        that: it reduces the candidate-ray density without reducing the
+        number of bounces a found path can have, so multi-bounce realism
+        (max_depth=3 or higher) can be preserved for a closer-to-1:1 digital
+        twin. Typical starting point when diffuse reflection is enabled on
+        large surfaces: 1e5-5e5.
+    max_num_paths_per_src : int
+        Maximum size of the candidate‑path buffer per transmitter (Sionna RT
+        default: 1_000_000). Works together with `samples_per_src` to bound
+        the same 2^32 buffer‑size limit; lower it in tandem if you still hit
+        the overflow after reducing `samples_per_src` alone.
     seed : int
         Random seed for reproducibility (e.g., diffuse scattering).
     check_diffusion_materials : bool
@@ -74,6 +162,8 @@ def run_path_solver(scene, max_depth=3, los=True, specular_reflection=True,
         specular_reflection=specular_reflection,
         diffuse_reflection=diffuse_reflection,
         refraction=refraction, synthetic_array=synthetic_array, seed=seed,
+        samples_per_src=samples_per_src,
+        max_num_paths_per_src=max_num_paths_per_src,
     )
     return paths
 
@@ -84,7 +174,6 @@ def diagnose_paths(paths):
     valid, interactions), total valid paths, statistics per (rx, tx) pair,
     interaction type distribution (NONE/SPECULAR/DIFFUSE/REFRACTION/DIFFRACTION),
     number of pure LoS paths, and example data for the first (rx, tx) pair.
-    Corresponds to cell 72 – useful for a quick sanity check before channel analysis.
 
     Returns
     -------

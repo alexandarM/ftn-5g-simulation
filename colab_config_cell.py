@@ -102,6 +102,20 @@ cfg.path_solver.refraction = True
 cfg.path_solver.synthetic_array = False
 cfg.path_solver.seed = 41
 
+# `samples_per_src` / `max_num_paths_per_src`: number of candidate rays
+# traced per transmitter during PathSolver's candidate generation (Sionna
+# RT default: 1_000_000 each). Its internal candidate-path buffer uses a
+# 32-bit index, so enabling diffuse reflection on large, highly-visible
+# surfaces (most notably the ground "plane" of the campus scene) can push
+# the candidate count past the 2^32 limit and raise an overflow error.
+# If that happens, lower THESE two (not max_depth or
+# radio_map_solver.samples_per_tx, which are unrelated) — this trims
+# candidate-ray density without reducing how many bounces a found path can
+# have, so you keep full multi-bounce fidelity for a closer-to-1:1 digital
+# twin. A good starting point once diffusion is enabled on large surfaces:
+cfg.path_solver.samples_per_src = int(2e5)
+cfg.path_solver.max_num_paths_per_src = int(2e5)
+
 # -----------------------------------------------------------------------
 # Print the current configuration for a quick check before running
 # -----------------------------------------------------------------------

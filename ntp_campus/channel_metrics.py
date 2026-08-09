@@ -99,6 +99,69 @@ def _compute_rss_and_paths_per_user(a_complex, valid_np, scene):
     return rss_dbm, best_tx_idx, best_rss, valid_rss, best_paths
 
 
+def _cfr_for_pairs(a_cir, tau_cir, frequencies, pair_idx):
+    """
+    Computes h(f) = sum_i a_i * exp(-j*2*pi*f*tau_i) for a small list of
+    (rx, rx_ant, tx, tx_ant) index tuples, using CIR output already
+    computed by `paths.cir(normalize_delays=True, out_type="numpy")`.
+
+    Parameters
+    ----------
+    a_cir : np.ndarray [num_rx, num_rx_ant, num_tx, num_tx_ant, num_paths, num_time_steps]
+        Complex baseband-equivalent CIR, from `paths.cir(...)`.
+    tau_cir : np.ndarray [num_rx, num_rx_ant, num_tx, num_tx_ant, num_paths]
+        Path delays [s]; invalid/padding slots are -1 (Sionna's sentinel
+        when `normalize_delays=True`).
+    frequencies : np.ndarray [num_freq]
+    pair_idx : sequence of (ir, ira, it, ita) tuples
+
+    Returns
+    -------
+    np.ndarray [len(pair_idx), num_freq]
+    """
+    n_pairs = len(pair_idx)
+    h = np.zeros((n_pairs, len(frequencies)), dtype=np.complex64)
+    for k, (ir, ira, it, ita) in enumerate(pair_idx):
+        a_p = a_cir[ir, ira, it, ita, :, 0]
+        tau_p = tau_cir[ir, ira, it, ita, :]
+        mask = tau_p > -0.5  # exclude invalid/padding slots (sentinel tau=-1)
+        a_p, tau_p = a_p[mask], tau_p[mask]
+        if a_p.size == 0:
+            continue
+        phase = -2.0 * np.pi * np.outer(tau_p, frequencies)  # [n_valid_paths, num_freq]
+        h[k] = np.sum(a_p[:, None] * np.exp(1j * phase), axis=0)
+
+    h_abs = np.abs(h)
+    energy = np.mean(h_abs ** 2, axis=1, keepdims=True)
+    energy[energy == 0] = 1.0
+    return h_abs / np.sqrt(energy)
+
+
+def _taps_for_pairs(a_cir, tau_cir, tap_indices, bandwidth, pair_idx):
+    """
+    Computes h[l] = sum_i a_i * sinc(l - bandwidth*tau_i) for a small list
+    of (rx, rx_ant, tx, tx_ant) index tuples - the manual, per-pair
+    equivalent of `sionna.rt.Paths.taps` (see `_cfr_for_pairs` docstring
+    above for why this is needed;
+    """
+    n_pairs = len(pair_idx)
+    h = np.zeros((n_pairs, len(tap_indices)), dtype=np.complex64)
+    for k, (ir, ira, it, ita) in enumerate(pair_idx):
+        a_p = a_cir[ir, ira, it, ita, :, 0]
+        tau_p = tau_cir[ir, ira, it, ita, :]
+        mask = tau_p > -0.5
+        a_p, tau_p = a_p[mask], tau_p[mask]
+        if a_p.size == 0:
+            continue
+        g = np.sinc(tap_indices[None, :] - bandwidth * tau_p[:, None])  # [n_valid_paths, n_taps]
+        h[k] = np.sum(a_p[:, None] * g, axis=0)
+
+    h_abs = np.abs(h)
+    energy = np.sum(h_abs ** 2, axis=1, keepdims=True)  # Sionna: total block energy = 1, not mean
+    energy[energy == 0] = 1.0
+    return h_abs / np.sqrt(energy)
+
+
 def plot_channel_metrics(paths, scene, model_name="current", save=True, tx_gain_dbi=17.0):
     """
     Generates a complete set of 8 plots for channel analysis, based on
@@ -149,20 +212,6 @@ def plot_channel_metrics(paths, scene, model_name="current", save=True, tx_gain_
     a_cir, tau_cir = paths.cir(normalize_delays=True, out_type="numpy")
     a_cir_abs = np.abs(a_cir)[..., 0]  # remove time_step axis (static channel)
 
-    # CFR (frequency domain, derived from CIR via DFT/IDFT)
-    num_subcarriers = 1024
-    frequencies = subcarrier_frequencies(num_subcarriers, 30e3)
-    h_freq = paths.cfr(frequencies=frequencies, normalize=True,
-                        normalize_delays=True, out_type="numpy")
-    h_abs = np.abs(h_freq)
-
-    # TAPS (discretised channel for a given bandwidth and tap index range)
-    taps = paths.taps(bandwidth=100e6, l_min=-6, l_max=100,
-                       sampling_frequency=None, normalize=True,
-                       normalize_delays=True, out_type="numpy")
-    taps_abs = np.abs(taps)
-    tap_indices = np.arange(-6, 101)
-
     # --- RSS and path counts per user (best serving TX) ---
     rss_dbm, best_tx_idx, best_rss, valid_rss, best_paths = \
         _compute_rss_and_paths_per_user(a_complex, valid_np, scene)
@@ -172,6 +221,8 @@ def plot_channel_metrics(paths, scene, model_name="current", save=True, tx_gain_
     tx_names = list(scene.transmitters.keys())
 
     # --- 2. Find valid (rx,tx) pairs for CIR/CFR/TAPS display ---
+    # (this now happens BEFORE the CFR/TAPS computation below, since CFR/TAPS
+    # are only computed for these specific selected pairs -- see comments there)
     active_per_pair = (a_cir_abs > 0).sum(axis=-1)
     candidates = np.argwhere(active_per_pair >= 3)
     if len(candidates) == 0:
@@ -181,6 +232,21 @@ def plot_channel_metrics(paths, scene, model_name="current", save=True, tx_gain_
     n_plots = min(9, len(candidates))
     rng = np.random.default_rng(42)  # fixed seed for reproducibility
     selected_idx = candidates[rng.choice(len(candidates), size=n_plots, replace=False)]
+
+    # CFR (frequency domain, derived from CIR via DFT). Computed manually,
+    # only for the (up to 3) pairs that PLOT 2 below actually plots -- see
+    # `_cfr_for_pairs` docstring for exactly why (avoids a Dr.Jit dense-
+    # tensor overflow that a full `paths.cfr()` call hits on large
+    # TX arrays with diffuse reflection).
+    num_subcarriers = 1024
+    frequencies = subcarrier_frequencies(num_subcarriers, 30e3)
+    h_abs_pairs = _cfr_for_pairs(a_cir, tau_cir, frequencies, selected_idx[:3])
+
+    # TAPS (discretised channel for a given bandwidth and tap index range).
+    # Same reasoning and same fix as CFR above -- see `_taps_for_pairs`.
+    l_min, l_max, bandwidth = -6, 100, 100e6
+    tap_indices = np.arange(l_min, l_max + 1)
+    taps_abs_pairs = _taps_for_pairs(a_cir, tau_cir, tap_indices, bandwidth, selected_idx[:3])
 
     # --- 3. PLOT 1: CIR GRID (3x3) ---
     print("\n[1] Generating CIR grid...")
@@ -215,8 +281,7 @@ def plot_channel_metrics(paths, scene, model_name="current", save=True, tx_gain_
     if n_cfr == 1:
         axes = [axes]
 
-    for ax, (ir, ira, it, ita) in zip(axes, selected_idx[:n_cfr]):
-        h_example = h_abs[ir, ira, it, ita, 0, :]
+    for ax, (ir, ira, it, ita), h_example in zip(axes, selected_idx[:n_cfr], h_abs_pairs):
         ax.plot(h_example, color=colors["teal"], linewidth=1.2)
         ax.set_xlabel("Subcarrier index")
         ax.set_ylabel(r"$|h_{freq}|$")
@@ -236,8 +301,7 @@ def plot_channel_metrics(paths, scene, model_name="current", save=True, tx_gain_
     if n_taps == 1:
         axes = [axes]
 
-    for ax, (ir, ira, it, ita) in zip(axes, selected_idx[:n_taps]):
-        taps_example = taps_abs[ir, ira, it, ita, 0, :]
+    for ax, (ir, ira, it, ita), taps_example in zip(axes, selected_idx[:n_taps], taps_abs_pairs):
         ax.stem(tap_indices, taps_example, linefmt="r-", markerfmt="ro", basefmt=" ")
         ax.set_xlabel(r"Tap index $\ell$")
         ax.set_ylabel(r"$|h[\ell]|$")
