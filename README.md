@@ -7,11 +7,13 @@ This repository was created by refactoring the original research Jupyter noteboo
 ## Project Structure
 
 ```text
-sionna_coverage/
+ftn-5g-simulation/
 ├── main.py                        # Main pipeline (replaces the notebook)
 ├── run_single_config_save_all.py  # Runs one config end-to-end and saves all report figures (Figure 1-44) with standardised names
 ├── colab_config_cell.py           # Ready-to-use Colab cell for setting up SimulationConfig
 ├── requirements.txt
+├── requirements-dev.txt           # Adds pytest for running the test suite
+├── tests/                         # Unit tests for pure-logic helpers (see "Running the tests" below)
 ├── ntp_campus/
 │   ├── __init__.py
 │   ├── config.py                  # All constants and adjustable parameters
@@ -60,7 +62,17 @@ cfg.path_solver.seed = 41
 
 ## Running the Simulation
 
-The project was originally developed for **Google Colab** to take advantage of GPU support and fetch meshes from Google Drive via `gdown`. However, every function takes `scene` as an explicit parameter, meaning the entire package can be run locally or on a dedicated server.
+The project was originally developed for **Google Colab** to take advantage of GPU support and fetch meshes from Google Drive via `gdown`. Every function takes `scene` as an explicit parameter, so the pipeline logic itself can run locally or on a dedicated server — but the **default mesh paths in `config.py`** (`SCENE_XML_PATH`, `PLY_FOLDER`) are set to Colab's `/content/...` layout, since that's the environment this project targets.
+
+To run outside Colab, first override these two paths (e.g. in a small local script, or by editing `config.py` directly) to point at wherever you've extracted the campus meshes locally:
+
+```python
+from ntp_campus import config
+config.SCENE_XML_PATH = "meshes/kampus_test.xml"
+config.PLY_FOLDER = "meshes/meshes/"
+```
+
+Then:
 
 ```bash
 pip install -r requirements.txt
@@ -91,6 +103,15 @@ python run_single_config_save_all.py
 8. **Radio Materials** - Reads building geometry from PLY files and assigns materials (concrete/brick/glass) along with their diffuse scattering parameters.
 9. **Channel Analysis** - Generates 100 random outdoor users, computes paths using the `PathSolver`, and performs a comprehensive channel analysis (CIR, CFR, TAPS, RSS, path loss, RMS delay spread, interaction distribution). All resulting plots are saved in the `figures/` directory.
 10. **Export** - (Optional) Packages the `figures/` directory into a ZIP file for easy download in Google Colab.
+
+## Running the Tests
+
+`tests/` covers a handful of pure-logic helpers that don't require a loaded scene or downloaded meshes: compass-to-yaw angle conversion (`antenna_pattern.compass_azimuth_to_yaw`), building grouping (`materials.group_buildings`), and random receiver placement with building avoidance (`receivers.generate_random_receiver_positions`). It's not a full test suite for the ray-tracing pipeline itself (that would need the campus meshes and a GPU/CPU Sionna RT backend), just a safety net for the parts of the codebase that are plain Python logic.
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+```
 
 ## Notes on the Antenna Pattern
 
