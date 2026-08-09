@@ -9,22 +9,25 @@ This repository was created by refactoring the original research Jupyter noteboo
 ```text
 sionna_coverage/
 ├── main.py                        # Main pipeline (replaces the notebook)
+├── run_single_config_save_all.py  # Runs one config end-to-end and saves all report figures (Figure 1-44) with standardised names
+├── colab_config_cell.py           # Ready-to-use Colab cell for setting up SimulationConfig
 ├── requirements.txt
 ├── ntp_campus/
+│   ├── __init__.py
 │   ├── config.py                  # All constants and adjustable parameters
+│   ├── run_config.py              # SimulationConfig - central configuration (antenna/diffusion/solvers)
 │   ├── antenna_pattern.py         # Custom AIR3278 antenna pattern + registration
-│   ├── scene_setup.py             # Downloading and loading the 3D campus scene
 │   ├── antenna_measurements.py    # V-BW / H-BW / F/B / SLL measurements
 │   ├── verification.py            # Verification orchestration on an empty scene
+│   ├── scene_setup.py             # Downloading and loading the 3D campus scene
 │   ├── transmitters.py            # Sector transmitter placement
 │   ├── materials.py               # PLY building geometry + radio material assignment
 │   ├── receivers.py               # Random user (RX) generation
 │   ├── radio_map.py               # Radio map calculation and visualization (coverage)
 │   ├── path_solver.py             # PathSolver trajectory calculation and diagnostics
 │   ├── channel_metrics.py         # CIR/CFR/TAPS/RSS analysis and plotting
-│   ├── export_utils.py            # Zipping and downloading the figures/ folder (Google Colab)
-│   └── run_config.py              # SimulationConfig - central configuration (antenna/diffusion/solvers)
-├── colab_config_cell.py           # Ready-to-use Colab cell for setting up SimulationConfig
+│   ├── geo_utils.py               # WGS84 georeferencing + satellite/OSM overlay of coverage maps
+│   └── export_utils.py            # Zipping and downloading the figures/ folder (Google Colab)
 └── figures/                       # All generated plots (created at runtime)
 ```
 
@@ -65,6 +68,16 @@ python main.py
 ```
 
 The execution flags at the top of `main.py` (`STEP_DOWNLOAD_MESHES`, `STEP_ANTENNA_VERIFICATION`, `STEP_PER_SECTOR_COVERAGE`, `STEP_MATERIALS`, `STEP_CHANNEL_ANALYSIS`, `STEP_EXPORT_FIGURES`) allow you to easily toggle specific pipeline steps. For example, if you have already downloaded the meshes locally, you can set `STEP_DOWNLOAD_MESHES = False`.
+
+### Generating all report figures (`run_single_config_save_all.py`)
+
+`main.py` is the general-purpose pipeline for exploring/debugging a configuration interactively. `run_single_config_save_all.py` is a separate, report-oriented entry point built on top of the same `ntp_campus` functions: it runs one `SimulationConfig` end-to-end and saves every figure used in the project report (Figure 1-44) into `figures/<model_name>/` with standardised, numbered filenames (`figure_4.png`, `figure_5.png`, ...), instead of the free-form names produced by `main.py`/`channel_metrics.py`. It also logs memory usage between steps (via `psutil`, if installed) and calls `geo_utils.plot_coverage_geo()` automatically (Figure 12), skipping it gracefully if `contextily` can't reach the internet for basemap tiles.
+
+Use `main.py` for iterating on a configuration; use `run_single_config_save_all.py` when you want the full, consistently-named figure set for the report:
+
+```bash
+python run_single_config_save_all.py
+```
 
 ## Simulation Flow (Steps in `main.py`)
 
