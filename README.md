@@ -85,4 +85,20 @@ The `ntp_campus.antenna_pattern.air3278_broadcast_v_pattern` is an analytical (G
 
 ## Dependencies
 
-Please refer to `requirements.txt`. Key libraries include: `sionna-rt`, `mitsuba`, `drjit`, `numpy`, `matplotlib`, `plyfile`, `shapely`, and `ipywidgets`.
+Please refer to `requirements.txt`. Key libraries include: `sionna-rt`, `mitsuba`, `drjit`, `numpy`, `matplotlib`, `plyfile`, `shapely`, `ipywidgets`, `psutil` (memory logging in `run_single_config_save_all.py`), and `pyproj` / `contextily` (georeferencing, see below).
+
+## Georeferencing (`geo_utils.py`)
+
+`ntp_campus/geo_utils.py` maps between the Sionna scene's local (x, y) coordinates and real WGS84 lat/lon, so coverage maps can be overlaid on a real satellite/OSM background of the FTN campus (similar to the BostonTwin project).
+
+```python
+from ntp_campus.geo_utils import get_campus_geo_reference, plot_coverage_geo
+
+geo_ref = get_campus_geo_reference()
+plot_coverage_geo(scene, radio_map, geo_ref, metric="path_gain",
+                   save_path="figures/coverage_geo_overlay.png")
+```
+
+The reference point is set in `config.py` (`CAMPUS_REF_LAT`, `CAMPUS_REF_LON`, `CAMPUS_REF_ROTATION_DEG`), defaulted to the FTN campus address. This is only a starting approximation — the value that lines up exactly with the imported geometry depends on wherever (0, 0) was placed in Blender during the BLOSM import. Refine it by checking whether the transmitter markers in `plot_coverage_geo()`'s output land on the real mast locations on the satellite image; adjust `CAMPUS_REF_LAT`/`CAMPUS_REF_LON` (and `CAMPUS_REF_ROTATION_DEG` if the import isn't aligned with true north) until they do.
+
+`run_single_config_save_all.py` calls this automatically (Figure 12) and skips it gracefully (with a warning, not a crash) if `contextily` can't reach the internet to fetch basemap tiles.
