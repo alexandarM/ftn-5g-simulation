@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-run_and_save_all_figures.py
-============================
+run_single_config_save_all.py
+==============================
 
 Runs a single configuration (e.g., 1x1_no_diff) and saves all report figures
 (Figure 1–44) into `figures/<model_name>/` with standardised names.
@@ -11,7 +11,7 @@ Uses `ntp_campus` package functions and extends them to save images with
 consistent filenames (e.g., `figure_4.png`, `figure_5.png`).
 
 Usage:
-    python run_and_save_all_figures.py
+    python run_single_config_save_all.py
 """
 
 import os
