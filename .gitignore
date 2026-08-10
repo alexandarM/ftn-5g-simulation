@@ -39,3 +39,6 @@ meshes/
 
 # Colab
 sample_data/
+
+!docs/images/*.png
+!docs/images/*.jpg
