@@ -5,7 +5,7 @@ A 5G network (NR n78, 3.5 GHz) coverage simulation for the NTP campus, utilizing
 This repository was created by refactoring the original research Jupyter notebook into a modular Python package (`ntp_campus/`) to improve readability, simplify testing, and facilitate further development.
 
 <p align="center">
-  <img src="docs/images/coverage_3sector_render.png" width="80%" alt="Combined 3-sector coverage over the NTP campus (3D render)">
+  <img src="docs/images/figure_10_coverage_3d_combined.png" width="80%" alt="Combined 3-sector coverage over the NTP campus (3D render)">
   <br>
   <em>Combined coverage of all three AIR 3278 sectors, rendered over the 3D campus scene.</em>
 </p>
@@ -15,13 +15,13 @@ This repository was created by refactoring the original research Jupyter noteboo
 | | |
 |---|---|
 | **Site layout** — sector positions & boresight directions | **Ray-traced propagation paths** |
-| ![Site layout](figure_2_site_layout.png) | ![Path render](figure_26_rays.png) |
+| ![Site layout](docs/images/figure_2_site_layout.png) | ![Path render](docs/images/figure_26_rays.png) |
 | **Antenna pattern verification** — V-BW / H-BW cuts vs. datasheet | **Sector association** — which sector serves which area |
-| ![V-BW/H-BW](figure_4_vbw_hbw_cuts.png) | ![Sector association](figure_18_sector_association.png) |
+| ![V-BW/H-BW](docs/images/figure_4_vbw_hbw_cuts.png) | ![Sector association](docs/images/figure_18_sector_association.png) |
 | **Coverage with diffuse scattering enabled** (2D) | **CDF of SINR** — probability of coverage quality |
-| ![Coverage 2D with diffusion](figure_13_coverage_2d_with_diff.png) | ![CDF SINR](figure_cdf_sinr_combined.png) |
+| ![Coverage 2D with diffusion](docs/images/figure_13_coverage_2d_with_diff.png) | ![CDF SINR](docs/images/figure_cdf_sinr_combined.png) |
 | **Coverage overlaid on satellite/OSM basemap** (`geo_utils.plot_coverage_geo`) | |
-| ![Geo overlay](figure_12_coverage_geo_overlay.png) | |
+| ![Geo overlay](docs/images/figure_12_coverage_geo_overlay.png) | |
 
 <details>
 <summary><b>Per-sector coverage</b></summary>
@@ -29,7 +29,7 @@ This repository was created by refactoring the original research Jupyter noteboo
 
 | Sector 1 | Sector 2 | Sector 3 |
 |---|---|---|
-| ![Sector 1](figure_14_coverage_tx1.png) | ![Sector 2](figure_14_coverage_tx2.png) | ![Sector 3](figure_14_coverage_tx3.png) |
+| ![Sector 1](docs/images/figure_14_coverage_tx1.png) | ![Sector 2](docs/images/figure_14_coverage_tx2.png) | ![Sector 3](docs/images/figure_14_coverage_tx3.png) |
 
 </details>
 
@@ -39,15 +39,15 @@ This repository was created by refactoring the original research Jupyter noteboo
 
 | CIR (grid) | CFR |
 |---|---|
-| ![CIR](cir_grid_1x1_with_diff.png) | ![CFR](cfr_1x1_with_diff.png) |
+| ![CIR](docs/images/cir_grid_1x1_with_diff.png) | ![CFR](docs/images/cfr_1x1_with_diff.png) |
 
 | TAPS (time-domain multipath components) | Number of paths per user (histogram) |
 |---|---|
-| ![TAPS](taps_1x1_with_diff.png) | ![Paths histogram](paths_histogram_1x1_with_diff.png) |
+| ![TAPS](docs/images/taps_1x1_with_diff.png) | ![Paths histogram](docs/images/paths_histogram_1x1_with_diff.png) |
 
 | Path loss vs. distance | CDF of path gain (combined) |
 |---|---|
-| ![Path loss](path_loss_1x1_with_diff.png) | ![Path gain CDF](figure_cdf_path_gain_combined.png) |
+| ![Path loss](docs/images/path_loss_1x1_with_diff.png) | ![Path gain CDF](docs/images/figure_cdf_path_gain_combined.png) |
 
 </details>
 
