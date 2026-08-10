@@ -119,23 +119,6 @@ def log_memory(label):
 
 
 def free_memory():
-    """
-    Forces Python's garbage collector to run AND asks Dr.Jit (Sionna RT's
-    backend) to release its internal memory-allocation cache back to the OS.
-
-    Call this AFTER explicitly `del`-ing any large objects you no longer
-    need (radio_map, paths, a scene render bitmap, ...) at the call site --
-    modifying a caller's variables indirectly through `locals()` does not
-    reliably work in CPython, so this only does the two steps that don't
-    need caller-side variable access.
-
-    The `dr.flush_malloc_cache()` step matters a lot here: Dr.Jit/Mitsuba
-    never release allocated memory by default (they keep an internal cache
-    to make repeated allocations cheap), so even after every Python
-    reference to a big object is gone and `gc.collect()` has run, the
-    process can still be sitting on several GB that only this call will
-    actually return to the OS.
-    """
     gc.collect()
     dr.flush_malloc_cache()
 
@@ -202,14 +185,7 @@ def run_and_save_all_figures(cfg_dict):
         save_current_figure(output_dir, "figure_fbr_1x1.png")
 
         sll_res = run_sll_verification(fbr_scene, tx_name="FBR_TEST_TX")
-        # SLL does not produce a separate figure, only prints results
 
-        # Figures 5, 6: Radiation patterns for 1x1 (3D, vertical/horizontal cuts)
-        # We reuse the V-cut/H-cut curves from Figure 4; 3D pattern could be added later.
-
-        # Verification runs on small throwaway empty scenes -- free them and
-        # everything they produced before moving on to the (much heavier)
-        # campus scene, rather than letting them linger for the rest of the run.
         del clean_scene, fbr_scene, vbw_hbw_res, fbr_res, sll_res, fig_vbw_hbw
         plt.close("all")
         free_memory()
@@ -362,20 +338,10 @@ def run_and_save_all_figures(cfg_dict):
             save_figure(fig_sec, output_dir, f"figure_14_coverage_tx{tx_idx+1}.png")
             plt.close(fig_sec)
 
-    # Antenna layout (Figure 2)
-    # NOTE: same plt.gcf()-after-plt.show() bug as figure_18 (see comment
-    # below) -- plot_site_layout() now returns `fig` directly instead.
     fig_layout = plot_site_layout(AIR3278_SECTOR_POSITIONS, save_path=None)
     save_figure(fig_layout, output_dir, "figure_2_site_layout.png")
     plt.close(fig_layout)
 
-    # Coverage overlaid on a real satellite/OSM background of the FTN campus
-    # (Figure 12: geo-referenced version of Figure 11). Wrapped in try/except
-    # because this step needs internet access to fetch basemap tiles
-    # (contextily) and depends on CAMPUS_REF_LAT/LON in config.py being a
-    # reasonably accurate match for the scene's BLOSM origin -- neither of
-    # which should be allowed to crash the rest of the run if unavailable
-    # or still uncalibrated.
     try:
         from ntp_campus.geo_utils import get_campus_geo_reference, plot_coverage_geo
         geo_ref = get_campus_geo_reference()
@@ -392,29 +358,13 @@ def run_and_save_all_figures(cfg_dict):
     # ------------------------------------------------------------------
     # 6. USER ASSOCIATION AND SINR (Figures 17-21, 44)
     # ------------------------------------------------------------------
-    # User sampling (Figure 17 = SINR-based sampling, Figure 17b = path_gain-based)
-    # NOTE: previously captured via `plt.gcf()`, which silently saved the
-    # WRONG figure under the "sinr" filename: the path_gain figure is
-    # created SECOND inside plot_random_user_sampling(), so it (not the
-    # sinr one) was the "current" figure by the time plt.gcf() ran here.
-    # Both figures are now returned explicitly and saved under their own,
-    # correctly-labelled filenames.
+
     sampling_res = plot_random_user_sampling(radio_map)
     save_figure(sampling_res["sinr_fig"], output_dir, "figure_17_user_sampling_sinr.png")
     plt.close(sampling_res["sinr_fig"])
     save_figure(sampling_res["path_gain_fig"], output_dir, "figure_17b_user_sampling_path_gain.png")
     plt.close(sampling_res["path_gain_fig"])
 
-    # Sector association (Figures 18, 19, 20, 21)
-    # NOTE: previously captured via `plt.gcf()` AFTER plot_sector_association()
-    # had already called `plt.show()` internally. Colab/Jupyter's inline
-    # backend closes ALL open figures right after displaying them
-    # (InlineBackend.close_figures=True by default), so by the time
-    # `plt.gcf()` ran here the real figure was already gone -- `plt.gcf()`
-    # then silently created a brand-new EMPTY figure, which is exactly why
-    # figure_18 displayed fine inline but saved to disk as a blank white
-    # PNG. Fixed by having plot_sector_association() return the actual
-    # figure object directly instead of relying on pyplot's global state.
     fig_assoc, _assoc_pos, _assoc_cell_ids = plot_sector_association(scene, radio_map)
     save_figure(fig_assoc, output_dir, "figure_18_sector_association.png")
     plt.close(fig_assoc)
@@ -430,11 +380,6 @@ def run_and_save_all_figures(cfg_dict):
             save_figure(fig_cdf_tx, output_dir, f"figure_cdf_{metric}_tx{tx+1}.png")
             plt.close(fig_cdf_tx)
 
-    # `radio_map` (and everything derived from it) is not needed again --
-    # PathSolver (next step) computes its own independent `paths` object.
-    # This is usually one of the biggest objects in the whole run, so free
-    # it explicitly before starting PathSolver rather than letting it sit
-    # in memory alongside the (also heavy) PathSolver computation.
     del radio_map, sampling_res, fig_assoc
     plt.close("all")
     free_memory()
@@ -467,7 +412,7 @@ def run_and_save_all_figures(cfg_dict):
     # caps the number of overlaid paths (max_paths, default 8000). Without
     # this cap, Sionna compiles ONE individual Mitsuba shape+emitter PER
     # BOUNCE of EVERY valid path into a brand-new scene on every render call
-    # -- with diffuse reflection enabled this repo can easily produce
+    # - with diffuse reflection enabled this repo can easily produce
     # 200k+ valid paths / 700k+ shapes, and THAT compilation (not PathSolver)
     # is what was causing the OOM crash here. `paths` itself is left fully
     # intact for the channel analysis step below (render_scene restores the
@@ -483,13 +428,6 @@ def run_and_save_all_figures(cfg_dict):
     # 8. CHANNEL ANALYSIS (Figures 22-24, 30-36, 41-43)
     # ------------------------------------------------------------------
     print("\n--- Generating channel plots ---")
-    # plot_channel_metrics already saves to figures/ with a model_name prefix,
-    # but we want numbered filenames. Instead, we call the function with save=True
-    # and then rename files, or simply capture the figures. Since it's easier,
-    # we run it and let it save, but we'll also manually generate key plots.
-    # However, to avoid duplication, we rely on the fact that plot_channel_metrics
-    # saves files; we can later move/rename them. But for simplicity, we'll
-    # just run it and note that it generates 8 plots in figures/ with prefix.
 
     results = plot_channel_metrics(
         paths, scene,
