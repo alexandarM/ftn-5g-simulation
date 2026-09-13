@@ -28,7 +28,7 @@ V_BW_DATASHEET = 8.5      # Vertical -3 dB beamwidth [degrees]
 H_BW_DATASHEET = 65.0     # Horizontal -3 dB beamwidth [degrees]
 SLL_DATASHEET = 13.0      # Side-lobe level [dB]
 FBR_DATASHEET = 25.0      # Front-to-back ratio [dB]
-PHI_OFFSET_DEG = 0.65     # Fine horizontal asymmetry correction
+PHI_OFFSET_DEG = 0.0     # Fine horizontal asymmetry correction
 
 PHI_OFFSET_RAD = np.deg2rad(PHI_OFFSET_DEG)
 

@@ -237,12 +237,12 @@ def define_radio_materials(diffusion_cfg=None):
 
     concrete = RadioMaterial(
         name="concrete_scattering",
-        relative_permittivity=5.0, conductivity=0.1, thickness=0.3,
+        relative_permittivity=5.24, conductivity=0.123, thickness=0.3,
         scattering_coefficient=concrete_sc, scattering_pattern=pattern,
     )
     brick = RadioMaterial(
         name="brick_scattering",
-        relative_permittivity=4.5, conductivity=0.05, thickness=0.25,
+        relative_permittivity=3.91, conductivity=0.029, thickness=0.25,
         scattering_coefficient=brick_sc, scattering_pattern=pattern,
     )
     glass = RadioMaterial(
