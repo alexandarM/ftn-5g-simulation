@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Campus survey</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  html,body{margin:0;height:100%;font-family:system-ui,-apple-system,sans-serif;
+            -webkit-text-size-adjust:100%}
+  #map{height:100%}
+  .card{position:absolute;z-index:1000;background:rgba(255,255,255,.94);
+        border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.35);padding:10px 12px}
+  #status{left:8px;right:8px;top:8px;font-size:14px;line-height:1.45}
+  #tools{left:8px;right:8px;bottom:8px;display:flex;gap:8px;flex-wrap:wrap;
+         align-items:center}
+  button{font-size:14px;padding:10px 14px;border-radius:8px;border:1px solid #bbb;
+         background:#fff;flex:1 1 auto;min-width:96px}
+  button.on{background:#1b7f33;color:#fff;border-color:#1b7f33}
+  input[type=number]{font-size:14px;padding:9px;border:1px solid #bbb;
+                     border-radius:8px;width:88px}
+  .big{font-size:17px;font-weight:600}
+  .in{color:#1b7f33}.out{color:#c0392b}.near{color:#b8860b}.muted{color:#777;font-size:12px}
+  .bar{height:10px;border-radius:3px;margin:5px 0 2px;background:linear-gradient(
+       to right,#30123b,#4145ab,#4675ed,#39a2fc,#1bcfd4,#24eca6,#61fc6c,
+       #a4fc3b,#d1e834,#f3c63a,#fe9b2d,#f36315,#d93806,#b11901)}
+  .ticks{display:flex;justify-content:space-between;font-size:11px;color:#555}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="card" id="status">starting...</div>
+<div class="card" id="tools">
+  <button id="rec">record</button>
+  <input type="number" id="manual" placeholder="RSRP" step="0.1">
+  <button id="mark">mark point</button>
+  <button id="save">save CSV</button>
+</div>
+
+<script>
+const REF = {lat:45.2461012, lon:19.8516968, rot:0.0};
+const POLY = [[-330.0, -330.0], [260.0, -330.0], [260.0, 260.0], [-330.0, 260.0]];
+const BOUNDARY = [[45.24313187994014, 19.84749344016256], [45.24313187994014, 19.855008538053738], [45.24844066428959, 19.855008538053738], [45.24844066428959, 19.84749344016256]];
+const SECTORS = [{"name": "NTP_S1_NR3500", "az": 0.0, "lat": 45.24473351318454, "lon": 19.84824966280968}, {"name": "NTP_S2_NR3500", "az": 70.0, "lat": 45.24473351318454, "lon": 19.84825705053303}, {"name": "NTP_S3_NR3500", "az": 140.0, "lat": 45.24466179960613, "lon": 19.848301504247672}];
+const COVERAGE = null;
+
+/* ---- coordinates: the same local tangent plane as the Python scripts ---- */
+function toLocal(lat, lon){
+  const rad=Math.PI/180, la=REF.lat*rad;
+  const perLat=111132.92-559.82*Math.cos(2*la)+1.175*Math.cos(4*la);
+  const perLon=111412.84*Math.cos(la)-93.5*Math.cos(3*la);
+  const e=(lon-REF.lon)*perLon, n=(lat-REF.lat)*perLat, t=-REF.rot*rad;
+  return [e*Math.cos(t)-n*Math.sin(t), e*Math.sin(t)+n*Math.cos(t)];
+}
+function inside(x,y){
+  let r=false;
+  for(let i=0,j=POLY.length-1;i<POLY.length;j=i++){
+    if((POLY[i][1]>y)!==(POLY[j][1]>y) &&
+       x<POLY[i][0]+(y-POLY[i][1])*(POLY[j][0]-POLY[i][0])/(POLY[j][1]-POLY[i][1]))
+      r=!r;
+  }
+  return r;
+}
+function edge(x,y){
+  let best=Infinity;
+  for(let i=0;i<POLY.length;i++){
+    const a=POLY[i], b=POLY[(i+1)%POLY.length];
+    const dx=b[0]-a[0], dy=b[1]-a[1], d2=dx*dx+dy*dy;
+    const t=d2===0?0:Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/d2));
+    best=Math.min(best,Math.hypot(x-(a[0]+t*dx), y-(a[1]+t*dy)));
+  }
+  return inside(x,y)?best:-best;
+}
+
+/* ---- map ---- */
+const map=L.map('map',{zoomControl:false}).setView([REF.lat,REF.lon],16);
+L.control.zoom({position:'topright'}).addTo(map);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+  {maxZoom:21,maxNativeZoom:19,attribution:'Esri'}).addTo(map);
+
+let overlay=null;
+if(COVERAGE){
+  overlay=L.imageOverlay(COVERAGE.image,COVERAGE.bounds,{opacity:.6}).addTo(map);
+}
+const boundary=L.polygon(BOUNDARY,{color:'#e01b24',weight:3,fillOpacity:.05}).addTo(map);
+map.fitBounds(boundary.getBounds().pad(.08));
+
+SECTORS.forEach(s=>{
+  L.circleMarker([s.lat,s.lon],{radius:7,color:'#fff',weight:2,
+    fillColor:'#e01b24',fillOpacity:1}).addTo(map).bindPopup(s.name);
+  const R=6378137,d=120/R,a=s.az*Math.PI/180,la=s.lat*Math.PI/180,lo=s.lon*Math.PI/180;
+  const la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(a));
+  const lo2=lo+Math.atan2(Math.sin(a)*Math.sin(d)*Math.cos(la),
+                          Math.cos(d)-Math.sin(la)*Math.sin(la2));
+  L.polyline([[s.lat,s.lon],[la2*180/Math.PI,lo2*180/Math.PI]],
+             {color:'#e01b24',weight:2,opacity:.85}).addTo(map);
+});
+
+if(COVERAGE){
+  const c=L.control({position:'topright'});
+  c.onAdd=function(){
+    const d=L.DomUtil.create('div','card');
+    d.style.position='static'; d.style.marginTop='8px';
+    d.innerHTML='<b>'+COVERAGE.metric.toUpperCase()+'</b><div class="bar"></div>'+
+      '<div class="ticks"><span>'+COVERAGE.vmin.toFixed(0)+'</span><span>'+
+      COVERAGE.unit+'</span><span>'+COVERAGE.vmax.toFixed(0)+'</span></div>'+
+      '<input type="range" min="0" max="100" value="60" id="op" style="width:120px">';
+    L.DomEvent.disableClickPropagation(d);
+    return d;
+  };
+  c.addTo(map);
+  setTimeout(()=>{const o=document.getElementById('op');
+    if(o)o.addEventListener('input',e=>overlay.setOpacity(e.target.value/100));},200);
+}
+
+/* ---- position ---- */
+let me=null, halo=null, trail=L.polyline([],{color:'#ffd21e',weight:3}).addTo(map);
+let follow=true, last=null, rows=[], recording=false;
+map.on('dragstart',()=>{follow=false;});
+
+function render(p){
+  const lat=p.coords.latitude, lon=p.coords.longitude, acc=p.coords.accuracy;
+  const [x,y]=toLocal(lat,lon), d=edge(x,y), isIn=d>=0;
+  last={lat,lon,acc,x,y,d,isIn,t:p.timestamp||Date.now()};
+
+  if(!me){
+    me=L.circleMarker([lat,lon],{radius:9,color:'#fff',weight:3,
+      fillColor:'#1b7f33',fillOpacity:1}).addTo(map);
+    halo=L.circle([lat,lon],{radius:acc,color:'#1b7f33',weight:1,fillOpacity:.08}).addTo(map);
+  } else {
+    me.setLatLng([lat,lon]); halo.setLatLng([lat,lon]); halo.setRadius(acc);
+  }
+  me.setStyle({fillColor:isIn?'#1b7f33':'#c0392b'});
+  if(follow) map.panTo([lat,lon],{animate:true,duration:.4});
+
+  let where;
+  if(!isIn) where='<span class="big out">OUTSIDE by '+Math.abs(d).toFixed(0)+' m</span>';
+  else if(d<20) where='<span class="big near">INSIDE, '+d.toFixed(0)+' m to edge</span>';
+  else where='<span class="big in">INSIDE</span>';
+  document.getElementById('status').innerHTML = where +
+    '<br>x '+x.toFixed(0)+'   y '+y.toFixed(0)+' m' +
+    '<br><span class="muted">accuracy '+acc.toFixed(0)+' m' +
+    (acc>20?' - poor, wait for a better fix':'') +
+    '  |  recorded '+rows.length+'</span>';
+
+  if(recording){
+    trail.addLatLng([lat,lon]);
+    const prev=rows.length?rows[rows.length-1]:null;
+    if(!prev || Math.hypot(x-prev.x,y-prev.y)>3) push('');
+  }
+}
+
+function push(note){
+  if(!last) return;
+  const v=document.getElementById('manual').value;
+  rows.push({t:last.t,lat:last.lat,lon:last.lon,x:last.x,y:last.y,
+             inside:last.isIn?1:0,edge:last.d,acc:last.acc,
+             manual:v===''?'':Number(v),note:note});
+}
+
+document.getElementById('rec').onclick=function(){
+  recording=!recording;
+  this.textContent=recording?'recording':'record';
+  this.className=recording?'on':'';
+};
+document.getElementById('mark').onclick=function(){
+  push('mark');
+  document.getElementById('status').insertAdjacentHTML('beforeend',
+    '<br><span class="muted">point recorded</span>');
+};
+document.getElementById('save').onclick=function(){
+  if(!rows.length){alert('nothing recorded yet');return;}
+  const head='timestamp,iso_time,lat,lon,local_x,local_y,inside_scene,'+
+             'distance_to_edge_m,accuracy_m,manual_value,note\n';
+  const body=rows.map(r=>[r.t,new Date(r.t).toISOString(),r.lat.toFixed(7),
+    r.lon.toFixed(7),r.x.toFixed(2),r.y.toFixed(2),r.inside,r.edge.toFixed(1),
+    r.acc.toFixed(1),r.manual,r.note].join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([head+body],{type:'text/csv'}));
+  a.download='survey_'+new Date().toISOString().slice(0,19).replace(/[:T]/g,'')+'.csv';
+  a.click();
+};
+
+if(navigator.geolocation){
+  navigator.geolocation.watchPosition(render,err=>{
+    const filePage = location.protocol==='file:';
+    document.getElementById('status').innerHTML =
+      '<span class="big out">no location</span><br>'+
+      '<span class="muted">'+err.message+'<br><br>'+
+      (filePage
+        ? 'This page was opened as a local file. Browsers never give location '+
+          'to file:// pages. Put it on GitHub Pages or any HTTPS host and open '+
+          'it from there.'
+        : 'Allow location for this site, and make sure the address starts with '+
+          'https://')+'</span>';
+  },{enableHighAccuracy:true,maximumAge:1000,timeout:20000});
+} else {
+  document.getElementById('status').textContent='this browser has no geolocation';
+}
+</script>
+</body></html>
