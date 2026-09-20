@@ -42,3 +42,10 @@ sample_data/
 
 !docs/images/*.png
 !docs/images/*.jpg
+# Drive-test logs
+measurements/logs/*.csv
+measurements/logs/*.html
+!measurements/logs/.gitkeep
+__pycache__/
+*.pyc
+.venv/
