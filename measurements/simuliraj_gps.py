@@ -1,9 +1,11 @@
 import csv
 import math
 
+# test to see if whole workflw works
+
 csv_path = "logs/drive_20260920_064850.csv"
 
-# Početna tačka (npr. šetnja centrom Novog Sada)
+# starting point (NS)
 start_lat = 45.25510
 start_lon = 19.84510
 altitude = 82.0
@@ -14,7 +16,7 @@ with open(csv_path, "r", encoding="utf-8") as f:
     fieldnames = reader.fieldnames
     rows = list(reader)
 
-# Simulacija kretanja: ~3.5 metra na svaka 3 sekunda (~4.2 km/h)
+# Movement simulation:
 step_lat = 0.000028
 step_lon = 0.000035
 
@@ -36,4 +38,4 @@ with open(csv_path, "w", newline="", encoding="utf-8") as f:
     writer.writeheader()
     writer.writerows(rows)
 
-print(f"Uspješno upisane GPS koordinate za {len(rows)} tačaka u {csv_path}!")
+print(f"Successfully written GPS coordinates for {len(rows)} points to {csv_path}")

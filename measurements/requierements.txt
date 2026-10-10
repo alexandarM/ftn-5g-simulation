@@ -1,0 +1,6 @@
+pyserial>=3.5
+requests>=2.25
+folium>=0.14
+# folium pulls in xyzservices; releases from 2024 on need Python 3.9+
+# (they call str.removesuffix), so cap it on 3.8.
+xyzservices<2024.1; python_version < "3.9"
