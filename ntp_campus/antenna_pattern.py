@@ -21,9 +21,9 @@ from sionna.rt import PolarizedAntennaPattern, register_antenna_pattern
 from . import config
 
 
-# =========================================================================
-# 1. SECTOR SPECIFICATION – metadata per transmitter
-# =========================================================================
+
+# SECTOR SPECIFICATION – metadata per transmitter
+
 class SectorAntennaSpec:
     """
     Holds static (planned) parameters for one base-station sector:
@@ -67,9 +67,9 @@ AIR3278_SECTOR_POSITIONS = [
 ]
 
 
-# =========================================================================
-# 2. ANGLE CONVERSION AND HELPERS
-# =========================================================================
+
+# ANGLE CONVERSION AND HELPERS
+
 def compass_azimuth_to_yaw(azimuth_deg, yaw_offset_deg=None):
     """
     Converts a compass azimuth (0° = north, clockwise) to Sionna's yaw angle
@@ -89,9 +89,9 @@ def to_scalar(x):
     return float(np.asarray(x).reshape(-1)[0])
 
 
-# =========================================================================
-# 3. CUSTOM PATTERN "air3278_broadcast"
-# =========================================================================
+
+# CUSTOM PATTERN "air3278_broadcast"
+
 def air3278_broadcast_v_pattern(theta: "mi.Float", phi: "mi.Float") -> "mi.Complex2f":
     """
     Analytical (Gaussian) 3D pattern that reproduces the key AIR 3278

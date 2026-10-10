@@ -24,9 +24,9 @@ from . import config
 DIFFUSION_MATERIAL_NAMES = ("concrete_scattering", "brick_scattering", "glass_scattering")
 
 
-# =========================================================================
-# 1. READING BUILDING GEOMETRY FROM PLY FILES
-# =========================================================================
+
+# READING BUILDING GEOMETRY FROM PLY FILES
+
 def _read_ply_vertices(filepath):
     """Loads (x, y, z) coordinates of all vertices from a single PLY file."""
     ply_data = PlyData.read(filepath)
@@ -206,9 +206,9 @@ def print_building_group_details(groups, ply_folder=config.PLY_FOLDER, filter_na
     print("=" * 110)
 
 
-# =========================================================================
-# 2. DEFINING AND ASSIGNING RADIO MATERIALS (FOR DIFFUSE SCATTERING)
-# =========================================================================
+
+#  DEFINING AND ASSIGNING RADIO MATERIALS (FOR DIFFUSE SCATTERING)
+
 def define_radio_materials(diffusion_cfg=None):
     """
     Defines three custom `RadioMaterial` objects (concrete, brick, glass)

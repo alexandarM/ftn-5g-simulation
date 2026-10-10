@@ -74,9 +74,8 @@ from ntp_campus import config
 from ntp_campus.scene_setup import load_empty_scene
 
 
-# =========================================================================
 # 1. SINGLE CONFIGURATION DEFINITION
-# =========================================================================
+
 # Change parameters here for the desired run.
 CONFIG = {
     "name": "1x1_no_diff",
@@ -89,9 +88,9 @@ CONFIG = {
 }
 
 
-# =========================================================================
+
 # 2. HELPER FUNCTIONS FOR SAVING FIGURES
-# =========================================================================
+
 def save_figure(fig, output_dir, filename, dpi=150, bbox_inches="tight"):
     """Saves a matplotlib figure to the given directory with the specified filename."""
     os.makedirs(output_dir, exist_ok=True)
@@ -123,9 +122,9 @@ def free_memory():
     dr.flush_malloc_cache()
 
 
-# =========================================================================
+
 # 3. MAIN FUNCTION FOR ONE CONFIGURATION (SAVES ALL PLOTS)
-# =========================================================================
+
 def run_and_save_all_figures(cfg_dict):
     """
     Runs the full pipeline for a single configuration and saves every plot.
@@ -161,9 +160,9 @@ def run_and_save_all_figures(cfg_dict):
     apply_antenna_config(cfg.antenna)
     register_air3278_pattern()
 
-    # ------------------------------------------------------------------
+
     # 1. ANTENNA VERIFICATION (Figures 4, 5, 6, 7, 8, 9 – for 1x1 and 12x1)
-    # ------------------------------------------------------------------
+
     if cfg_dict["verify"]:
         print("\n--- Antenna verification (1x1) ---")
         # Verification for 1x1 (custom pattern)
@@ -191,9 +190,9 @@ def run_and_save_all_figures(cfg_dict):
         free_memory()
         log_memory("after antenna verification")
 
-    # ------------------------------------------------------------------
+
     # 2. VERIFICATION FOR 12x1 (if pattern is tr38901)
-    # ------------------------------------------------------------------
+
     if cfg_dict["pattern"] == "tr38901":
         print("\n--- Antenna verification (12x1 or 4x8) ---")
         # Repeat verification for the given physical array
@@ -241,9 +240,9 @@ def run_and_save_all_figures(cfg_dict):
         # Figures 8, 9: Radiation patterns for 12x1 (3D, vertical/horizontal)
         # Could be generated via scene.render or custom 3D plot – skipped for now.
 
-    # ------------------------------------------------------------------
+
     # 3. LOAD CAMPUS SCENE AND DEPLOY TRANSMITTERS
-    # ------------------------------------------------------------------
+
     print("\n--- Loading campus scene ---")
     ensure_sionna_installed()
     download_campus_meshes()
@@ -269,9 +268,9 @@ def run_and_save_all_figures(cfg_dict):
     # Deploy sectors
     deploy_all_sectors(scene, specs=AIR3278_SPECS, tx_power_dbm=cfg.antenna.tx_power_dbm)
 
-    # ------------------------------------------------------------------
+
     # 4. MATERIALS
-    # ------------------------------------------------------------------
+
     print("\n--- Assigning materials ---")
     building_data = load_building_dimensions()
     groups = group_buildings(building_data)
@@ -291,9 +290,9 @@ def run_and_save_all_figures(cfg_dict):
     free_memory()
     log_memory("after materials")
 
-    # ------------------------------------------------------------------
+
     # 5. RADIO MAP (COVERAGE) - Figures 10-16, 40
-    # ------------------------------------------------------------------
+
     print("\n--- Computing radio map ---")
     radio_map = compute_radio_map(
         scene,
@@ -355,9 +354,9 @@ def run_and_save_all_figures(cfg_dict):
               f"Check internet access (contextily needs to fetch basemap tiles) "
               f"and CAMPUS_REF_LAT/CAMPUS_REF_LON in config.py.")
 
-    # ------------------------------------------------------------------
+
     # 6. USER ASSOCIATION AND SINR (Figures 17-21, 44)
-    # ------------------------------------------------------------------
+
 
     sampling_res = plot_random_user_sampling(radio_map)
     save_figure(sampling_res["sinr_fig"], output_dir, "figure_17_user_sampling_sinr.png")
@@ -385,9 +384,9 @@ def run_and_save_all_figures(cfg_dict):
     free_memory()
     log_memory("after radio map + coverage figures (radio_map freed)")
 
-    # ------------------------------------------------------------------
+
     # 7. GENERATE USERS AND PATHSOLVER (Figures 25, 26, 22-24, 30-36, 41-43)
-    # ------------------------------------------------------------------
+
     print("\n--- Generating users ---")
     set_rx_array(scene)
     rx_names = deploy_random_users(scene, groups, num_receivers=cfg.num_receivers)
@@ -424,9 +423,9 @@ def run_and_save_all_figures(cfg_dict):
     del fig_paths
     free_memory()
 
-    # ------------------------------------------------------------------
+
     # 8. CHANNEL ANALYSIS (Figures 22-24, 30-36, 41-43)
-    # ------------------------------------------------------------------
+
     print("\n--- Generating channel plots ---")
 
     results = plot_channel_metrics(
@@ -450,8 +449,8 @@ def run_and_save_all_figures(cfg_dict):
     print(f"All results saved in: {output_dir}")
 
 
-# =========================================================================
+
 # 4. RUN
-# =========================================================================
+
 if __name__ == "__main__":
     run_and_save_all_figures(CONFIG)

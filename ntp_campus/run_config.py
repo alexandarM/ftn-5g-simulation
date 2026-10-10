@@ -40,9 +40,9 @@ from dataclasses import dataclass, field
 from typing import Tuple
 
 
-# =========================================================================
-# 1. ANTENNA PATTERN
-# =========================================================================
+
+# ANTENNA PATTERN
+
 @dataclass
 class AntennaConfig:
     """
@@ -63,9 +63,9 @@ class AntennaConfig:
     tx_power_dbm: float = 53.0     # Power per TX port [dBm]
 
 
-# =========================================================================
-# 2. DIFFUSE SCATTERING (RADIO MATERIALS)
-# =========================================================================
+
+# DIFFUSE SCATTERING (RADIO MATERIALS)
+
 @dataclass
 class DiffusionConfig:
     """
@@ -87,9 +87,9 @@ class DiffusionConfig:
     scattering_pattern: str = "lambertian"
 
 
-# =========================================================================
-# 3. RADIO MAP SOLVER (statistical coverage map)
-# =========================================================================
+
+# RADIO MAP SOLVER (statistical coverage map)
+
 @dataclass
 class RadioMapSolverConfig:
     """
@@ -104,9 +104,9 @@ class RadioMapSolverConfig:
     refraction: bool = True
 
 
-# =========================================================================
-# 4. PATH SOLVER (actual paths / CIR / CFR / RSS analysis)
-# =========================================================================
+
+# PATH SOLVER (actual paths / CIR / CFR / RSS analysis)
+
 @dataclass
 class PathSolverConfig:
     """
@@ -141,9 +141,9 @@ class PathSolverConfig:
     max_num_paths_per_src: int = int(1e6)  # candidate-path buffer size per TX (lower alongside samples_per_src)
 
 
-# =========================================================================
-# 5. COMBINED CONFIGURATION FOR A SINGLE RUN
-# =========================================================================
+
+# COMBINED CONFIGURATION FOR A SINGLE RUN
+
 @dataclass
 class SimulationConfig:
     """

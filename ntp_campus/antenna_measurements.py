@@ -31,9 +31,9 @@ from .antenna_pattern import to_scalar
 from . import config
 
 
-# =========================================================================
-# 1. VERTICAL BEAMWIDTH (V-BW)
-# =========================================================================
+
+# VERTICAL BEAMWIDTH (V-BW)
+
 def measure_vbw_simple(sc, tx_name, radius=100.0, tx_power_dbm=53.0,
                         span_deg=60.0, n_points=150):
     """
@@ -130,9 +130,8 @@ def measure_vbw_simple(sc, tx_name, radius=100.0, tx_power_dbm=53.0,
     return right - left, tv[peak_idx], tv, yv
 
 
-# =========================================================================
-# 2. 2D ANGLE SCAN (BASE FOR H-BW)
-# =========================================================================
+#2D ANGLE SCAN (BASE FOR H-BW)
+
 def scan_local_angles_and_eirp(sc, tx_name, world_el_offsets, world_az_offsets,
                                 center_el_deg, center_az_deg,
                                 radius=100.0, tx_power_dbm=53.0):
@@ -215,9 +214,9 @@ def scan_local_angles_and_eirp(sc, tx_name, world_el_offsets, world_az_offsets,
     return (np.array(theta_list), np.array(phi_list), np.array(eirp_list))
 
 
-# =========================================================================
-# 3. HORIZONTAL BEAMWIDTH (H-BW) – "envelope" method
-# =========================================================================
+
+# HORIZONTAL BEAMWIDTH (H-BW) – "envelope" method
+
 def measure_hbw_envelope(sc, tx_name, radius=100.0, tx_power_dbm=53.0,
                           el_span=25.0, az_span=60.0, n_el=30, n_az=40,
                           n_bins=50, center_el_deg=4.0):
@@ -276,9 +275,8 @@ def measure_hbw_envelope(sc, tx_name, radius=100.0, tx_power_dbm=53.0,
     return hbw, peak_phi, bin_centers, bin_max_eirp
 
 
-# =========================================================================
-# 4. EIRP IN A SINGLE DIRECTION (used for F/B)
-# =========================================================================
+#EIRP IN A SINGLE DIRECTION (used for F/B)
+
 def measure_eirp_at_direction(sc, tx_name, az_offset_deg, el_deg=None, radius=100.0):
     """
     Measures EIRP in one specific direction. Takes an azimuth offset from
@@ -337,9 +335,9 @@ def measure_eirp_at_direction(sc, tx_name, az_offset_deg, el_deg=None, radius=10
     return 10 * np.log10(p_lin) + fspl_db + p_tx_dbm
 
 
-# =========================================================================
-# 5. FRONT-TO-BACK RATIO (F/B)
-# =========================================================================
+
+# FRONT-TO-BACK RATIO (F/B)
+
 def measure_front_to_back_ratio_singleprobe(sc, tx_name, radius=100.0,
                                              back_span_deg=30.0, n_back_points=31,
                                              el_span_deg=60.0, n_el_points=61):
@@ -483,9 +481,9 @@ def measure_front_to_back_ratio_batch(sc, tx_name, radius=100.0,
             "eirp_back_grid": eirp_back_grid}
 
 
-# =========================================================================
-# 6. VERTICAL SIDE-LOBE LEVEL (SLL)
-# =========================================================================
+
+# VERTICAL SIDE-LOBE LEVEL (SLL)
+
 def measure_side_lobe_level_vertical(sc, tx_name, radius=100.0, tx_power_dbm=53.0,
                                       span_deg=60.0, n_points=400):
     """

@@ -44,9 +44,9 @@ import numpy as np
 from . import config
 
 
-# =========================================================================
-# 1. GEOREFERENCE – scene (x, y) <-> (lat, lon) conversion
-# =========================================================================
+
+# GEOREFERENCE – scene (x, y) <-> (lat, lon) conversion
+
 @dataclass
 class GeoReference:
     """Reference point linking local (x, y) [m] coordinates from the
@@ -113,9 +113,9 @@ def get_campus_geo_reference() -> GeoReference:
     )
 
 
-# =========================================================================
-# 2. EXTRACT GRID AND METRICS FROM THE sionna.rt.RadioMap OBJECT
-# =========================================================================
+
+# EXTRACT GRID AND METRICS FROM THE sionna.rt.RadioMap OBJECT
+
 def extract_radio_map_grid(radio_map, metric="path_gain", tx=None, to_db=True):
     """Extracts the (x, y) grid and metric values from the `RadioMap` object
     returned by `radio_map.compute_radio_map()`.
@@ -173,9 +173,9 @@ def get_transmitter_positions(scene):
     return positions
 
 
-# =========================================================================
-# 3. OVERLAY OVER A REAL SATELLITE/OSM BACKGROUND
-# =========================================================================
+
+# OVERLAY OVER A REAL SATELLITE/OSM BACKGROUND
+
 def plot_coverage_geo(
     scene,
     radio_map,

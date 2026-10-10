@@ -33,9 +33,7 @@ How to use it in Colab
    original notebook.
 """
 
-# =============================================================================
 # BEGIN CELL (copy from here into Colab)
-# =============================================================================
 
 from ntp_campus.run_config import SimulationConfig
 

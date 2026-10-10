@@ -25,9 +25,8 @@ import pytest
 from ntp_campus.antenna_pattern import compass_azimuth_to_yaw, SectorAntennaSpec
 
 
-# =========================================================================
+
 # compass_azimuth_to_yaw
-# =========================================================================
 # We always pass yaw_offset_deg explicitly (instead of relying on the
 # yaw_offset_deg=None -> config.YAW_OFFSET_DEG default) so these tests
 # don't depend on whether some other test/module has already mutated the
@@ -72,9 +71,8 @@ def test_compass_azimuth_to_yaw_reads_config_when_offset_is_none(monkeypatch):
     assert yaw_with_config == pytest.approx(yaw_with_explicit, abs=1e-9)
 
 
-# =========================================================================
 # SectorAntennaSpec
-# =========================================================================
+
 def test_sector_antenna_spec_total_tilt_is_sum_of_mechanical_and_electrical():
     spec = SectorAntennaSpec(
         tx_name="TEST_S1", sector=1, azimuth_deg=0.0,

@@ -17,9 +17,9 @@ from sionna.rt import RadioMapSolver, Camera
 from .transmitters import deploy_single_sector, set_tx_array
 
 
-# =========================================================================
-# 1. RADIO MAP COMPUTATION (combined – all transmitters simultaneously)
-# =========================================================================
+
+# RADIO MAP COMPUTATION (combined – all transmitters simultaneously)
+
 def compute_radio_map(scene, max_depth=3, cell_size=(2, 2), samples_per_tx=int(1e6),
                        specular_reflection=True, diffuse_reflection=False,
                        refraction=True, check_diffusion_materials=True):
@@ -107,9 +107,8 @@ def render_coverage(scene, radio_map, camera=None, rm_tx=None, show_2d_preview=T
     scene.render(**render_kwargs)
 
 
-# =========================================================================
-# 2. COVERAGE MAP FOR A SINGLE SECTOR
-# =========================================================================
+# COVERAGE MAP FOR A SINGLE SECTOR
+
 def render_single_sector_coverage(scene, sector_position, tx_power_dbm=None,
                                    camera=None, max_depth=3, cell_size=(2, 2),
                                    samples_per_tx=int(1e6), diffuse_reflection=False):
@@ -154,9 +153,9 @@ def render_single_sector_coverage(scene, sector_position, tx_power_dbm=None,
     return radio_map
 
 
-# =========================================================================
-# 3. SITE LAYOUT VISUALISATION (antenna positions on the ground)
-# =========================================================================
+
+# SITE LAYOUT VISUALISATION (antenna positions on the ground)
+
 def plot_site_layout(sector_positions, arrow_len=30.0,
                       save_path="figures/site_layout_check_v2.png"):
     """
@@ -207,9 +206,8 @@ def plot_site_layout(sector_positions, arrow_len=30.0,
     return fig
 
 
-# =========================================================================
-# 4. USER‑TO‑SECTOR ASSOCIATION (sampling positions)
-# =========================================================================
+# USER‑TO‑SECTOR ASSOCIATION (sampling positions)
+
 def plot_random_user_sampling(radio_map):
     """
     Demonstrates `radio_map.sample_positions` with two different criteria
